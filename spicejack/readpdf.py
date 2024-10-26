@@ -19,6 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.converter import TextConverter
+from base_processor import BaseProcessor
 from pdfminer.layout import LAParams
 from pdfminer.pdfpage import PDFPage
 from unicodedata import normalize
@@ -134,3 +135,8 @@ def apply(pdf_list,*filters):
         result.append(res)
     return result
 
+class PDFprocessor(BaseProcessor):
+    def __init__(self,filepath):
+        self.fp = filepath
+        self.sent_list = split_into_sentences(read_pdf(self.fp))
+        
