@@ -25,7 +25,7 @@ setup(
         "pdfminer.six",
         "python-dotenv"
     ),
-    keywords=['python', 'json', 'stream', 'video stream', 'camera stream', 'sockets'],
+    keywords=['python', 'json', 'ai','tensorflow','pytorch','spicejack','artificial intelligence','training data','generation'],
     classifiers=[
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
