@@ -17,17 +17,30 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+
+# Specifically pdf related imports
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.converter import TextConverter
 from base_processor import BaseProcessor
 from pdfminer.layout import LAParams
 from pdfminer.pdfpage import PDFPage
-from unicodedata import normalize
 from io import StringIO
 
-
+# Clean up text
+from unicodedata import normalize
 import re
 
+# Parallelization
+from multiprocessing import Process
+from threading import Thread
+
+# AI
+from chatbot import G4FChatbot,OpenAIChatbot
+from prompt import prompt1
+
+import json # json
+
+from itertools import islice # i fr dont know, this is needed for grouping sentences into chunks of 10
 
 def read_pdf(path):
     rsrcmgr = PDFResourceManager()
@@ -136,7 +149,78 @@ def apply(pdf_list,*filters):
     return result
 
 class PDFprocessor(BaseProcessor):
-    def __init__(self,filepath):
+    def __init__(self,filepath,filters: list = None,use_legitimate=False,model="gpt-3.5-turbo"):
+        """Class for processing pdf files.
+
+        Args:
+            filepath (_type_): Path of the pdf file.
+            filters (list): List of functions that take a list of strings, return them modified.
+        """
+        self.result = []
         self.fp = filepath
-        self.sent_list = split_into_sentences(read_pdf(self.fp))
+        self.chatbot = G4FChatbot(model) if not use_legitimate else OpenAIChatbot(model)
+    def run(self,*,thread=False,process=False,logging=False):
+        """Process PDF file.
+
+        Args:
+            thread (bool, optional): Run in a child process. Defaults to False.
+            process (bool, optional): Run in a child thread. Defaults to False.
+            logging (bool, optional): Print the responses from the LLM. Defaults to False.
+        """
         
+        self.sent_list = split_into_sentences(read_pdf(self.fp))
+        self.sent_list = apply(
+            self.sent_list,
+            remove_multiple_spaces,
+            remove_single_word_ln,
+            remove_numbers_in_brackets,
+            remove_single_char_ln,
+            remove_non_ascii
+        )
+        
+        
+        self.logging = logging
+        if thread:
+            self.thread = Thread(target=self.run)
+            self.thread.start()
+            return
+        if process:
+            self.process = Process(target=self.run)
+            self.process.start()
+            return
+        
+        for sent in self.grouper(self.sent_list,10):
+            response = self.chatbot.message(f"{prompt1}{" ".join(sent)}").strip("```json").strip("```")
+            if self.logging:print(response)
+            response_json = json.loads(response)
+            if not response_json == {}:
+                self.result += response_json  # convert response from AI to a python list.
+
+        return self.result
+    def stop(self):
+        if hasattr(self,"thread"):
+            self.thread.stop()
+        elif hasattr(self,"process"):
+            self.process.stop()
+        else:
+            raise RuntimeError("No child process or child thread found.")
+    
+    def save(self,jsonpath):
+        """Save the result into json file
+
+        Args:
+            jsonpath (str): Path to save the json file.
+        """
+        with open(jsonpath,"w") as file:
+            json.dump(self.result,file)
+    def grouper(self,iterable, size):
+        it = iter(iterable)
+        item = list(islice(it, size))
+        while item:
+            yield item
+            item = list(islice(it, size))
+    
+if __name__ == "__main__":
+    processor = PDFprocessor("/home/lizard/Projects/SpiceJack/development/tests/Natural_language_processing.pdf")
+    processor.run(logging=True)
+     
