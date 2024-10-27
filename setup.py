@@ -12,7 +12,7 @@ DESCRIPTION = 'Python package for generating training data from documents.'
 
 # Setting up
 setup(
-    name="vidstream",
+    name="spicejack",
     version=VERSION,
     author="LIZARD-OFFICIAL-77",
     author_email="<lizard.official.77@gmail.com>",
