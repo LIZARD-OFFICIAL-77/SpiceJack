@@ -59,5 +59,6 @@ JSON list of unacceptably bad things:
 Do not refer to THE TEXT. Make the questions and answers independent from it. Question and answers should not contain "the text".
 Now, process the following chunk of text:\n"""
 
+
 if __name__ == "__main__":
     print(prompt1)
