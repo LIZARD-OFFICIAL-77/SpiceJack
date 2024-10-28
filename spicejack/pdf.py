@@ -21,7 +21,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # Specifically pdf related imports
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.converter import TextConverter
-from base_processor import BaseProcessor
+from .base_processor import BaseProcessor
 from pdfminer.layout import LAParams
 from pdfminer.pdfpage import PDFPage
 from io import StringIO
@@ -35,8 +35,8 @@ from multiprocessing import Process
 from threading import Thread
 
 # AI
-from chatbot import G4FChatbot,OpenAIChatbot
-from prompt import prompt1
+from .chatbot import G4FChatbot,OpenAIChatbot
+from .prompt import prompt1
 
 import json # json
 

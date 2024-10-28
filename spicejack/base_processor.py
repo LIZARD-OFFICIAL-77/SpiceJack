@@ -1,4 +1,4 @@
-from chatbot import G4FChatbot
+from .chatbot import G4FChatbot
 import g4f
 
 class BaseProcessor:
