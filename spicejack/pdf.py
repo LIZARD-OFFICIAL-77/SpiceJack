@@ -159,6 +159,7 @@ class PDFprocessor(BaseProcessor):
         self.result = []
         self.fp = filepath
         self.chatbot = G4FChatbot(model) if not use_legitimate else OpenAIChatbot(model)
+        self.chatbot.instructions(prompt1)
     def run(self,*,thread=False,process=False,logging=False):
         """Process PDF file.
 
@@ -190,11 +191,13 @@ class PDFprocessor(BaseProcessor):
             return
         
         for sent in self.grouper(self.sent_list,10):
-            response = self.chatbot.message(f"{prompt1}{" ".join(sent)}").strip("```json").strip("```")
-            if self.logging:print(response)
-            response_json = json.loads(response)
-            if not response_json == {}:
-                self.result += response_json  # convert response from AI to a python list.
+            try:
+                response = self.chatbot.message(" ".join(sent)).strip("```json").strip("```")
+                if self.logging:print(response)
+                response_json = json.loads(response)
+                if not response_json == {}:
+                    self.result += response_json  # convert response from AI to a python list.
+            except json.JSONDecodeError:continue
 
         return self.result
     def stop(self):
