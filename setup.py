@@ -56,7 +56,7 @@ setup(
         'openai'
     ],
     classifiers=[
-        'Development Status :: 3 - Beta',
+        'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
         'Programming Language :: Python :: 3',
         'Operating System :: Unix',
