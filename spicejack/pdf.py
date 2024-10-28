@@ -42,6 +42,9 @@ import json # json
 
 from itertools import islice # i fr dont know, this is needed for grouping sentences into chunks of 10
 
+
+MESSAGE_CONTEXT_SIZE = 10
+
 def read_pdf(path):
     rsrcmgr = PDFResourceManager()
     retstr = StringIO()
@@ -160,13 +163,14 @@ class PDFprocessor(BaseProcessor):
         self.fp = filepath
         self.chatbot = G4FChatbot(model) if not use_legitimate else OpenAIChatbot(model)
         self.chatbot.instructions(prompt1)
-    def run(self,*,thread=False,process=False,logging=False):
+    def run(self,*,thread=False,process=False,logging=False,autosave=False):
         """Process PDF file.
 
         Args:
             thread (bool, optional): Run in a child process. Defaults to False.
             process (bool, optional): Run in a child thread. Defaults to False.
             logging (bool, optional): Print the responses from the LLM. Defaults to False.
+            autosave (bool, optional): Save q&a pairs as soon as they are processed
         """
         
         self.sent_list = split_into_sentences(read_pdf(self.fp))
@@ -179,27 +183,38 @@ class PDFprocessor(BaseProcessor):
             remove_non_ascii
         )
         
-        
+        self.autosave = autosave
         self.logging = logging
         if thread:
-            self.thread = Thread(target=self.run)
+            self.thread = Thread(target=self.run,kwargs={
+                "logging":logging,
+                "autosave":autosave
+            })
             self.thread.start()
             return
         if process:
-            self.process = Process(target=self.run)
+            self.process = Process(target=self.run,kwargs={
+                "logging":logging,
+                "autosave":autosave
+            })
             self.process.start()
             return
         
-        for sent in self.grouper(self.sent_list,10):
+        for sent in self.grouper(self.sent_list,MESSAGE_CONTEXT_SIZE):
             try:
                 response = self.chatbot.message(" ".join(sent)).strip("```json").strip("```")
                 if self.logging:print(response)
                 response_json = json.loads(response)
-                if not response_json == {}:
-                    self.result += response_json  # convert response from AI to a python list.
+                if not response_json == []:
+                    self.add(response_json) # convert response from AI to a python list.
+                    if self.autosave:
+                        self.save()
+                    
             except json.JSONDecodeError:continue
 
         return self.result
+    def add(self,pairs):
+        for i in pairs: self.result.append(i)
     def stop(self):
         if hasattr(self,"thread"):
             self.thread.stop()
@@ -208,14 +223,14 @@ class PDFprocessor(BaseProcessor):
         else:
             raise RuntimeError("No child process or child thread found.")
     
-    def save(self,jsonpath):
+    def save(self,jsonpath="result.json"):
         """Save the result into json file
 
         Args:
             jsonpath (str): Path to save the json file.
         """
         with open(jsonpath,"w") as file:
-            json.dump(self.result,file)
+            json.dump(self.result,file,indent=4)
     def grouper(self,iterable, size):
         it = iter(iterable)
         item = list(islice(it, size))
@@ -223,7 +238,5 @@ class PDFprocessor(BaseProcessor):
             yield item
             item = list(islice(it, size))
     
-if __name__ == "__main__":
-    processor = PDFprocessor("/home/lizard/Projects/SpiceJack/development/tests/Natural_language_processing.pdf")
-    processor.run(logging=True)
+
      
